@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nananagoya</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #e3f2fd;
+            --header-h: 25vh;
+            --nav-h: 80px;
+            --user-border: #546e7a; /* 預設主題色 */
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(white 15%, transparent 16%),
+                radial-gradient(white 15%, transparent 16%);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 雪花特效 */
+        #snow-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5;
+        }
+        .snowflake {
+            position: absolute; top: -10px; color: white; opacity: 0.9;
+            animation: fall linear infinite; text-shadow: 0 0 2px rgba(0,0,0,0.1);
+        }
+        @keyframes fall { to { transform: translateY(110vh); } }
+
+        /* 封面 */
+        header {
+            flex: 0 0 var(--header-h);
+            background: linear-gradient(135deg, #b0bec5 0%, #cfd8dc 100%);
+            background-size: cover; background-position: center;
+            position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 10;
+        }
+        .app-title {
+            position: absolute; top: 15px; left: 20px;
+            font-size: 1.4rem; font-weight: 800; color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5); margin: 0;
+            font-family: 'Arial Rounded MT Bold', sans-serif; z-index: 12;
+        }
+        .header-btns { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; z-index: 20; }
+        .header-btn {
+            background: rgba(0,0,0,0.4); color: white; border: 2px solid white;
+            border-radius: 50%; width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; backdrop-filter: blur(4px);
+        }
+        #color-picker { position: absolute; opacity: 0; width: 0; height: 0; }
+
+        /* 內容區 - 關鍵修正：padding-bottom 加大 */
+        #main-container {
+            flex: 1; overflow-y: auto; padding: 15px;
+            padding-bottom: 160px; /* 大幅增加底部空間，防止被導覽列遮住 */
+            position: relative; z-index: 8;
+        }
+
+        /* 卡片 */
+        .card {
+            background: #fff; border-radius: 16px; padding: 15px; margin-bottom: 20px;
+            border: 3px solid var(--user-border);
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+        }
+
+        /* 行程項目 */
+        .it-item {
+            position: relative; padding: 15px; margin-bottom: 15px;
+            background: #fff; border: 2px solid var(--user-border);
+            border-radius: 12px; box-shadow: 2px 2px 0px rgba(0,0,0,0.05);
+            transition: transform 0.1s;
+        }
+        .it-item:active { transform: scale(0.98); }
+        .it-time { font-weight: 900; color: #333; font-size: 1rem; margin-bottom: 5px; opacity: 0.8; }
+        .it-title { font-weight: 800; font-size: 1.2rem; color: #000; margin-bottom: 5px; }
+        .it-note { font-size: 0.85rem; color: #333; background: rgba(255,255,255,0.6); padding: 4px 8px; border-radius: 6px; display: inline-block; font-weight: 500; }
+        
+        /* 行程操作按鈕 */
+        .it-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 10px; }
+        .it-btn { border: none; background: rgba(255,255,255,0.5); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #555; }
+        .it-btn:hover { background: rgba(255,255,255,0.8); }
+
+        /* 花費儀表板 */
+        .expense-dashboard {
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            color: white; border-radius: 16px; padding: 15px; margin-bottom: 20px;
+            border: 3px solid white; box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+        .exp-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
+        .exp-total-row { 
+            display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; 
+            border-top: 1px dashed rgba(255,255,255,0.5); font-size: 1.1rem; font-weight: bold; 
+        }
+
+        /* 導覽列 */
+        nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 80px;
+            background: white; display: flex; box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+            z-index: 100; border-top: 3px solid var(--user-border);
+        }
+        .nav-btn {
+            flex: 1; border: none; background: none; color: #90a4ae;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 0.75rem; cursor: pointer;
+        }
+        .nav-btn i { font-size: 1.3rem; margin-bottom: 3px; }
+        .nav-btn.active { color: var(--user-border); font-weight: 800; transform: translateY(-2px); }
+
+        /* 特效 */
+        .rainbow-effect:active::after {
+            content: ''; position: absolute; top: 50%; left: 50%; width: 5px; height: 5px;
+            background: transparent; border-radius: 50%; transform: translate(-50%, -50%);
+            animation: rainbow 0.4s ease-out;
+        }
+        @keyframes rainbow { 0% { box-shadow: 0 0 0 0px rgba(255,0,0,0.5); } 100% { box-shadow: 0 0 0 50px rgba(255,0,255,0); opacity: 0; } }
+
+        .fab {
+            position: fixed; bottom: 100px; right: 20px; width: 55px; height: 55px;
+            background: var(--user-border); color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 2px solid white; z-index: 90;
+        }
+
+        /* Cropper & Modal */
+        .cropper-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 3000; flex-direction: column; }
+        .cropper-container { flex: 1; position: relative; overflow: hidden; background: #111; touch-action: none; }
+        .cropper-overlay { position: absolute; border: 2px solid white; box-shadow: 0 0 0 9999px rgba(0,0,0,0.7); pointer-events: none; z-index: 10; }
+        .cropper-controls { height: 80px; background: #222; display: flex; align-items: center; justify-content: center; gap: 30px; }
+        .crop-btn { padding: 8px 30px; border-radius: 20px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .cropper-hint { position: absolute; top: 20px; width: 100%; text-align: center; color: white; background: rgba(0,0,0,0.5); padding: 5px; pointer-events: none; z-index: 20; }
+
+        .page { display: none; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+
+        /* 通用元件 */
+        .date-scroller { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 5px; margin-bottom: 10px; scrollbar-width: none; }
+        .date-pill { background: white; border: 2px solid var(--user-border); padding: 6px 14px; border-radius: 20px; white-space: nowrap; color: var(--user-border); font-weight: bold; }
+        .date-pill.active { background: var(--user-border); color: white; }
+        
+        .daily-weather { 
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            color: white; border-radius: 16px; padding: 15px; margin-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 3px solid white; box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .shop-item { background: #fff; border: 3px solid var(--user-border); border-radius: 12px; overflow: hidden; position: relative; }
+        .shop-img-box { height: 140px; background: #f0f4f8; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .shop-img-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-box { background: white; width: 85%; padding: 25px; border-radius: 20px; border: 4px solid var(--user-border); }
+        .form-row input, .form-row select { width: 100%; padding: 10px; border: 2px solid #ccc; border-radius: 8px; box-sizing: border-box; margin-top: 5px; font-size: 16px; }
+        .btn-full { width: 100%; padding: 12px; background: var(--user-border); color: white; border: none; border-radius: 8px; margin-top: 10px; font-weight: bold; font-size: 1rem; }
+    </style>
+</head>
+<body>
+
+<input type="file" id="file-input" accept="image/*" style="display: none;">
+<input type="color" id="color-picker" value="#546e7a" onchange="updateTheme(this.value)">
+
+<div id="snow-container"></div>
+
+<header id="app-header">
+    <div class="app-title">Nananagoya</div>
+    <div class="header-btns">
+        <div class="header-btn rainbow-effect" onclick="document.getElementById('color-picker').click()"><i class="fas fa-palette"></i></div>
+        <div class="header-btn rainbow-effect" onclick="startUpload('cover')"><i class="fas fa-camera"></i></div>
+    </div>
+</header>
+
+<div id="main-container">
+    
+    <div id="page-itinerary" class="page active">
+        <div class="date-scroller" id="date-list"></div>
+        <div class="daily-weather">
+            <div>
+                <div style="font-size:0.9rem; opacity:0.9;" id="weather-loc"></div>
+                <div style="font-size:1.8rem; font-weight:800;" id="weather-temp"></div>
+            </div>
+            <div style="text-align:right;">
+                <i class="fas fa-snowflake fa-2x" id="weather-icon"></i>
+                <div style="font-size:0.9rem; margin-top:5px;" id="weather-desc"></div>
+            </div>
+        </div>
+        <div id="itinerary-content"></div>
+        <div class="fab rainbow-effect" onclick="openModal('itinerary')"><i class="fas fa-plus"></i></div>
+    </div>
+
+    <div id="page-info" class="page">
+        <div class="card" style="text-align: center;">
+            <h4 style="margin:0 0 10px 0;">🇯🇵 匯率試算 (0.202)</h4>
+            <input type="number" id="jpy-in" style="font-size:1.4rem; width:100px; text-align:center; padding:5px; border:2px solid #ccc; border-radius:10px;" placeholder="¥" oninput="document.getElementById('twd-out').innerText=(this.value*0.202).toFixed(0)">
+            <div style="font-size:1.6rem; font-weight:bold; color:#e65100; margin-top:5px;">
+                <span id="twd-out">0</span> <span style="font-size:0.9rem; color:#333;">NTD</span>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3 style="margin-top:0;">🍽️ 餐廳名單</h3>
+            <p><strong>📍 名古屋</strong></p>
+            <p style="font-size:0.9rem;">麵家獅子丸、鳥開総本家、世界的山將、もうもう亭、矢場丼、あつた蓬莱軒、和牛ひとり焼肉、コンパル</p>
+            <hr style="margin:10px 0; border:0; border-top:1px dashed #ccc;">
+            <p><strong>📍 高山/飛驒</strong></p>
+            <p style="font-size:0.9rem;">Train Bleu、丸明燒肉、壽壽屋、飛驒牛壽司、Takayama Pudding</p>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0;">🏨 住宿</h3>
+            <p><strong>Garland Hotel</strong> (Day 1-2)</p>
+            <p><strong>Hotel Amanek</strong> (Day 3-4)</p>
+            <p><strong>東橫INN 名古屋榮</strong> (Day 5-6)</p>
+        </div>
+    </div>
+
+    <div id="page-shopping" class="page">
+        <div class="grid-2" id="shop-list"></div>
+        <div class="fab rainbow-effect" onclick="openModal('shopping')"><i class="fas fa-camera"></i></div>
+    </div>
+
+    <div id="page-expenses" class="page">
+        <div class="expense-dashboard">
+            <div class="exp-row">
+                <span>🇯🇵 日幣總計</span>
+                <span id="exp-total-jpy">¥0</span>
+            </div>
+            <div class="exp-row">
+                <span>🇹🇼 台幣總計</span>
+                <span id="exp-total-twd">$0</span>
+            </div>
+            <div class="exp-total-row">
+                <span>💰 折合台幣總花費</span>
+                <span id="exp-grand-total">$0</span>
+            </div>
+            <div style="font-size:0.8rem; text-align:right; margin-top:5px; opacity:0.8;">(匯率 0.202)</div>
+        </div>
+
+        <div id="exp-list"></div>
+        <div class="fab rainbow-effect" onclick="openModal('expense')"><i class="fas fa-plus"></i></div>
+    </div>
+</div>
+
+<nav>
+    <button class="nav-btn rainbow-effect active" onclick="switchPage('itinerary', this)"><i class="fas fa-calendar-alt"></i>行程</button>
+    <button class="nav-btn rainbow-effect" onclick="switchPage('info', this)"><i class="fas fa-info-circle"></i>資訊</button>
+    <button class="nav-btn rainbow-effect" onclick="switchPage('shopping', this)"><i class="fas fa-shopping-bag"></i>購物</button>
+    <button class="nav-btn rainbow-effect" onclick="switchPage('expenses', this)"><i class="fas fa-yen-sign"></i>花費</button>
+</nav>
+
+<div id="cropper-modal" class="cropper-modal">
+    <div class="cropper-hint">👋 單指移動 / 雙指縮放</div>
+    <div class="cropper-container" id="crop-container">
+        <img id="crop-img" style="position: absolute; transform-origin: 0 0;">
+        <div id="crop-overlay" class="cropper-overlay"></div>
+    </div>
+    <div class="cropper-controls">
+        <button class="crop-btn" style="background:#555; color:white;" onclick="closeCropper()">取消</button>
+        <button class="crop-btn" style="background:var(--accent); color:white;" onclick="doCrop()">確認裁切</button>
+    </div>
+</div>
+
+<div id="modal" class="modal">
+    <div class="modal-box">
+        <h3 id="m-title" style="margin-top:0;">新增</h3>
+        <div id="m-body"></div>
+        <button class="btn-full" onclick="saveData()">儲存</button>
+        <button class="btn-full" onclick="closeModal()" style="background:#ddd; color:#333;">取消</button>
+    </div>
+</div>
+
+<script>
+    // === 預設資料 ===
+    const defaultData = {
+        '1/11': { loc:'名古屋', temp:'5°~10°', icon:'fa-cloud', desc:'多雲', items:[
+            {time:'11:12',title:'高鐵出發',note:'雲林 -> 桃機 ', color:'#fff3e0'},
+            {time:'15:50',title:'JL8670 起飛',note:'TPE -> NGO ', color:'#e3f2fd'},
+            {time:'19:25',title:'抵達名古屋',note:'μ-SKY 往金山轉榮', color:'#e3f2fd'},
+            {time:'21:00',title:'Check-in',note:'Garland Hotel ', color:'#f3e5f5'}
+        ]},
+        '1/12': { loc:'犬山 / 名古屋', temp:'4°~9°', icon:'fa-sun', desc:'晴時多雲', items:[
+            {time:'上午',title:'犬山城',note:'名鐵套票 ¥1630 ', color:'#e8f5e9'},
+            {time:'下午',title:'市區逛街',note:'3coin, GU, Uniqlo', color:'#fffde7'}
+        ]},
+        '1/13': { loc:'高山 / 白川鄉', temp:'-2°~3°', icon:'fa-snowflake', desc:'降雪', items:[
+            {time:'07:00',title:'購買車票',note:'名古屋車站買「飛騨エリアフリーきっぷ」', color:'#e1f5fe'},
+            {time:'07:16',title:'搭乘特急',note:'Hida Limited Express 前往高山', color:'#e3f2fd'},
+            {time:'10:50',title:'前往合掌村',note:'濃飛巴士 (套票)', color:'#e0f7fa'},
+            {time:'傍晚',title:'高山住宿',note:'Hotel Amanek ', color:'#f3e5f5'}
+        ]},
+        '1/14': { loc:'新穗高', temp:'-6°~-1°', icon:'fa-icicles', desc:'嚴寒', items:[
+            {time:'上午',title:'宮川朝市',note:'早餐 ', color:'#fff3e0'},
+            {time:'未定',title:'新穗高索道',note:'搭纜車 (套票)', color:'#e0f2f1'},
+            {time:'下午',title:'平湯溫泉',note:'視情況', color:'#ffebee'}
+        ]},
+        '1/15': { loc:'名古屋', temp:'6°~11°', icon:'fa-sun', desc:'晴朗', items:[
+            {time:'09:36',title:'搭車回名古屋',note:'高山站出發 ', color:'#e3f2fd'},
+            {time:'12:04',title:'抵達名古屋',note:'抵達市區', color:'#e3f2fd'},
+            {time:'12:30',title:'更換飯店',note:'東橫INN 名古屋榮 ', color:'#f3e5f5'}
+        ]},
+        '1/16': { loc:'名古屋', temp:'5°~10°', icon:'fa-cloud-sun', desc:'多雲', items:[
+            {time:'全天',title:'自由行程',note:'東橫INN 續住', color:'#fffde7'}
+        ]},
+        '1/17': { loc:'名古屋', temp:'6°~12°', icon:'fa-plane', desc:'返程', items:[
+            {time:'08:20',title:'前往機場',note:'名鐵', color:'#e3f2fd'},
+            {time:'12:05',title:'JL8671 起飛',note:'NGO -> TPE ', color:'#e3f2fd'}
+        ]}
+    };
+
+    let userItinerary, userShopping, userExpenses;
+    let curDate = '1/11';
+    let modalType = '';
+    let editIdx = -1; // 用來追蹤現在是編輯模式還是新增模式
+
+    // === 安全啟動機制 ===
+    window.onload = function() {
+        try {
+            userItinerary = JSON.parse(localStorage.getItem('myTrip_Itinerary'));
+            userShopping = JSON.parse(localStorage.getItem('myTrip_Shop'));
+            userExpenses = JSON.parse(localStorage.getItem('myTrip_Exp'));
+            
+            if(!userItinerary) userItinerary = defaultData;
+            if(!userShopping) userShopping = [];
+            if(!userExpenses) userExpenses = [];
+        } catch (e) {
+            console.error("Data corrupted, resetting.", e);
+            userItinerary = defaultData; userShopping = []; userExpenses = [];
+            saveAll();
+        }
+
+        createSnowflakes();
+        const savedCover = localStorage.getItem('myTrip_CoverImg');
+        if(savedCover) document.getElementById('app-header').style.backgroundImage = `url(${savedCover})`;
+        const savedColor = localStorage.getItem('myTrip_Color');
+        if(savedColor) updateTheme(savedColor);
+
+        renderItinerary();
+    };
+
+    function updateTheme(color) {
+        document.documentElement.style.setProperty('--user-border', color);
+        localStorage.setItem('myTrip_Color', color);
+        document.getElementById('color-picker').value = color;
+    }
+
+    function createSnowflakes() {
+        const container = document.getElementById('snow-container');
+        container.innerHTML = '';
+        for (let i = 0; i < 30; i++) {
+            const flake = document.createElement('div');
+            flake.className = 'snowflake';
+            flake.innerHTML = '❄';
+            flake.style.left = Math.random() * 100 + '%';
+            flake.style.animationDuration = (Math.random() * 3 + 4) + 's';
+            flake.style.opacity = Math.random() * 0.7 + 0.3;
+            flake.style.fontSize = (Math.random() * 15 + 10) + 'px';
+            flake.style.animationDelay = Math.random() * 5 + 's';
+            container.appendChild(flake);
+        }
+    }
+
+    function switchPage(pageId, btn) {
+        document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+        if(pageId==='itinerary') renderItinerary();
+        if(pageId==='shopping') renderShop();
+        if(pageId==='expenses') renderExp();
+    }
+
+    // === 圖片裁切 ===
+    let cropMode='', rawImg=new Image(), imgState={x:0,y:0,scale:1}, initialDist=0, initialScale=1, isDragging=false, lastX=0, lastY=0;
+
+    function startUpload(mode) {
+        cropMode = mode;
+        const fileIn = document.getElementById('file-input');
+        fileIn.value = '';
+        fileIn.onchange = function(e) {
+            if(e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(evt) { rawImg.src = evt.target.result; rawImg.onload = openCropper; };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        };
+        fileIn.click();
+    }
+
+    function openCropper() {
+        const modal = document.getElementById('cropper-modal');
+        const container = document.getElementById('crop-container');
+        const overlay = document.getElementById('crop-overlay');
+        modal.style.display = 'flex';
+        document.getElementById('crop-img').src = rawImg.src;
+
+        const w = container.clientWidth; const h = container.clientHeight;
+        let boxW = (cropMode==='cover') ? w*0.95 : w*0.8;
+        let boxH = (cropMode==='cover') ? boxW*0.4 : boxW;
+        overlay.style.width=boxW+'px'; overlay.style.height=boxH+'px';
+        overlay.style.left=(w-boxW)/2+'px'; overlay.style.top=(h-boxH)/2+'px';
+
+        imgState = { x: (w-rawImg.width)/2, y: (h-rawImg.height)/2, scale: 1 };
+        updateImgTransform();
+        container.addEventListener('touchstart', handleTouchStart, {passive: false});
+        container.addEventListener('touchmove', handleTouchMove, {passive: false});
+        container.addEventListener('touchend', handleTouchEnd);
+    }
+
+    function updateImgTransform() { document.getElementById('crop-img').style.transform = `translate(${imgState.x}px, ${imgState.y}px) scale(${imgState.scale})`; }
+    function handleTouchStart(e) { e.preventDefault(); if(e.touches.length===1){ isDragging=true; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; } else if(e.touches.length===2){ isDragging=false; initialDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); initialScale=imgState.scale; } }
+    function handleTouchMove(e) { e.preventDefault(); if(e.touches.length===1 && isDragging){ imgState.x+=e.touches[0].clientX-lastX; imgState.y+=e.touches[0].clientY-lastY; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; updateImgTransform(); } else if(e.touches.length===2 && initialDist>0){ const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); imgState.scale=initialScale*(dist/initialDist); updateImgTransform(); } }
+    function handleTouchEnd(e) { isDragging=false; if(e.touches.length<2) initialDist=0; }
+    function closeCropper() { document.getElementById('cropper-modal').style.display='none'; }
+    function doCrop() {
+        const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d');
+        const overlay=document.getElementById('crop-overlay').getBoundingClientRect();
+        const container=document.getElementById('crop-container').getBoundingClientRect();
+        const outputScale=2; canvas.width=overlay.width*outputScale; canvas.height=overlay.height*outputScale;
+        const offsetX = (imgState.x - (overlay.left - container.left)) * outputScale;
+        const offsetY = (imgState.y - (overlay.top - container.top)) * outputScale;
+        ctx.fillStyle="white"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.translate(offsetX, offsetY); ctx.scale(imgState.scale*outputScale, imgState.scale*outputScale);
+        ctx.drawImage(rawImg,0,0);
+        const res = canvas.toDataURL('image/jpeg', 0.8);
+        if(cropMode==='cover'){ document.getElementById('app-header').style.backgroundImage=`url(${res})`; localStorage.setItem('myTrip_CoverImg', res); }
+        else if(cropMode==='shopping'){ window.tempShoppingImg=res; openModal('shopping_step2'); }
+        closeCropper();
+    }
+
+    // === 渲染邏輯 ===
+    function renderItinerary() {
+        const dBox = document.getElementById('date-list'); dBox.innerHTML='';
+        Object.keys(userItinerary).forEach(d => {
+            const pill=document.createElement('div'); pill.className=`date-pill ${d===curDate?'active':''}`;
+            pill.innerText=d; pill.onclick=()=>{curDate=d;renderItinerary();}; dBox.appendChild(pill);
+        });
+        const dData = userItinerary[curDate];
+        document.getElementById('weather-loc').innerText=dData.loc; document.getElementById('weather-temp').innerText=dData.temp;
+        document.getElementById('weather-desc').innerText=dData.desc; document.getElementById('weather-icon').className=`fas ${dData.icon} fa-2x`;
+        const lBox=document.getElementById('itinerary-content'); lBox.innerHTML='';
+        dData.items.forEach((item,i)=>{
+            lBox.innerHTML += `
+            <div class="it-item" style="background:${item.color || '#fff'}">
+                <div class="it-time">${item.time}</div>
+                <div class="it-title">${item.title}</div>
+                <div class="it-note">${item.note}</div>
+                <div class="it-actions">
+                    <button class="it-btn" onclick="openModal('itinerary', ${i})"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="it-btn" onclick="delItem('itinerary',${i})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>`;
+        });
+    }
+
+    function renderShop() {
+        const box=document.getElementById('shop-list'); box.innerHTML='';
+        userShopping.forEach((item,i)=>{
+            const imgHTML = item.img ? `<img src="${item.img}">` : `<i class="fas fa-shopping-bag fa-2x" style="color:#ddd"></i>`;
+            box.innerHTML += `<div class="shop-item"><div class="shop-img-box">${imgHTML}</div><button style="position:absolute;top:5px;right:5px;background:rgba(255,255,255,0.8);color:red;border:none;border-radius:50%;width:25px;height:25px;" onclick="delItem('shop',${i})">X</button><div style="padding:10px; font-weight:bold; color:var(--user-border);">${item.name}</div></div>`;
+        });
+    }
+
+    function renderExp() {
+        const box=document.getElementById('exp-list'); box.innerHTML='';
+        let totalJPY = 0;
+        let totalTWD = 0;
+        
+        userExpenses.forEach((ex,i)=>{
+            const val = parseInt(ex.amt);
+            const isJPY = (ex.curr === 'JPY' || !ex.curr); // 預設 JPY
+            
+            if(isJPY) totalJPY += val;
+            else totalTWD += val;
+
+            const symbol = isJPY ? '¥' : 'NT$';
+            const color = isJPY ? '#ff7043' : '#66bb6a';
+
+            box.innerHTML += `<div class="card" style="display:flex;justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-weight:bold;">${ex.title}</div>
+                    <div style="font-size:0.8rem;color:#90a4ae;">${ex.cat}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:${color};font-weight:bold;font-size:1.2rem;">${symbol} ${val}</div>
+                    <button style="border:none;background:none;color:#ccc;" onclick="delItem('exp',${i})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>`;
+        });
+
+        const grandTotal = totalTWD + Math.round(totalJPY * 0.202);
+        document.getElementById('exp-total-jpy').innerText = '¥' + totalJPY;
+        document.getElementById('exp-total-twd').innerText = 'NT$' + totalTWD;
+        document.getElementById('exp-grand-total').innerText = 'NT$' + grandTotal;
+    }
+
+    function delItem(type, i) {
+        if(!confirm('刪除?'))return;
+        if(type==='itinerary') userItinerary[curDate].items.splice(i,1);
+        if(type==='shop') userShopping.splice(i,1);
+        if(type==='exp') userExpenses.splice(i,1);
+        saveAll(); 
+        if(type==='itinerary') renderItinerary(); if(type==='shop') renderShop(); if(type==='exp') renderExp();
+    }
+    
+    function saveAll() {
+        try {
+            localStorage.setItem('myTrip_Itinerary', JSON.stringify(userItinerary));
+            localStorage.setItem('myTrip_Shop', JSON.stringify(userShopping));
+            localStorage.setItem('myTrip_Exp', JSON.stringify(userExpenses));
+        } catch(e) { alert('空間不足，請刪除部分照片！'); }
+    }
+
+    // === Modal 邏輯 (支援編輯) ===
+    function openModal(type, index = -1) {
+        modalType = type;
+        editIdx = index; // 設定編輯索引
+        const modal = document.getElementById('modal');
+        const body = document.getElementById('m-body');
+        modal.style.display='flex';
+        body.innerHTML = '';
+
+        if(type==='itinerary') {
+            const isEdit = index > -1;
+            document.getElementById('m-title').innerText = isEdit ? `編輯行程 (${curDate})` : `新增行程 (${curDate})`;
+            // 若是編輯，取得舊資料
+            const oldItem = isEdit ? userItinerary[curDate].items[index] : {time:'', title:'', note:'', color:'#ffffff'};
+            
+            body.innerHTML=`
+                <div class="form-row"><label>時間</label><input id="inp-1" value="${oldItem.time}" placeholder="10:00"></div>
+                <div class="form-row"><label>標題</label><input id="inp-2" value="${oldItem.title}" placeholder="做什麼"></div>
+                <div class="form-row"><label>備註</label><input id="inp-3" value="${oldItem.note}" placeholder="細節"></div>
+                <div class="form-row"><label>🎨 背景色</label><input type="color" id="inp-color" value="${oldItem.color}" style="width:100%; height:40px;"></div>`;
+        
+        } else if(type==='shopping') {
+            closeModal(); startUpload('shopping'); return;
+        } else if (type === 'shopping_step2') {
+             document.getElementById('m-title').innerText='輸入商品名稱';
+             body.innerHTML=`<div class="form-row"><label>品名</label><input id="inp-1" placeholder="買了什麼"></div><div style="text-align:center;margin-top:10px;"><img src="${window.tempShoppingImg}" style="width:100px; height:100px; object-fit:cover; border-radius:10px;"></div>`;
+        } else if(type==='expense') {
+            document.getElementById('m-title').innerText='記帳';
+            body.innerHTML=`
+                <div class="form-row"><label>項目</label><input id="inp-1"></div>
+                <div class="form-row"><label>金額</label><input type="number" id="inp-2"></div>
+                <div class="form-row"><label>幣別</label>
+                    <select id="inp-curr">
+                        <option value="JPY">🇯🇵 日圓 (JPY)</option>
+                        <option value="TWD">🇹🇼 台幣 (TWD)</option>
+                    </select>
+                </div>
+                <div class="form-row"><label>類別</label>
+                    <select id="inp-3"><option>飲食</option><option>交通</option><option>購物</option><option>住宿</option><option>其他</option></select>
+                </div>`;
+        }
+    }
+    function closeModal() { document.getElementById('modal').style.display='none'; }
+
+    function saveData() {
+        const v1 = document.getElementById('inp-1').value;
+        const v2 = document.getElementById('inp-2') ? document.getElementById('inp-2').value : '';
+        const v3 = document.getElementById('inp-3') ? document.getElementById('inp-3').value : '';
+        const vColor = document.getElementById('inp-color') ? document.getElementById('inp-color').value : '#ffffff';
+        const vCurr = document.getElementById('inp-curr') ? document.getElementById('inp-curr').value : 'JPY';
+
+        if(modalType === 'itinerary') {
+            const newItem = {time:v1, title:v2, note:v3, color:vColor};
+            if(editIdx > -1) {
+                // 編輯模式：更新該項目
+                userItinerary[curDate].items[editIdx] = newItem;
+            } else {
+                // 新增模式
+                userItinerary[curDate].items.push(newItem);
+            }
+            // 重新排序
+            userItinerary[curDate].items.sort((a,b)=>a.time.localeCompare(b.time));
+            renderItinerary();
+        } else if (modalType === 'expense') {
+            userExpenses.push({title:v1, amt:v2, cat:v3, curr:vCurr});
+            renderExp();
+        } else if (modalType === 'shopping_step2') {
+            userShopping.push({name:v1, img:window.tempShoppingImg});
+            renderShop();
+        }
+        saveAll();
+        closeModal();
+    }
+</script>
+</body>
+</html>
